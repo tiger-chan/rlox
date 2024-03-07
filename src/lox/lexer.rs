@@ -2,7 +2,6 @@ use crate::string_reader::StringReader;
 
 use super::grammar;
 use super::Token;
-use super::TokenType;
 
 #[derive(Debug)]
 pub enum TokenizationError {}
@@ -17,40 +16,51 @@ impl std::error::Error for TokenizationError {}
 
 #[derive(Debug, Default)]
 pub struct Lexer<'a> {
-    has_error: bool,
-    tokens: Vec<Token>,
     src: &'a str,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(src: &'a str) -> Self {
-        Self {
-            src,
-            ..Default::default()
-        }
-    }
+#[derive(Debug, Default)]
+struct LexerReport {
+    has_error: bool,
+    tokens: Vec<Token>,
+    pos: usize,
+}
 
-    pub fn tokenize(&mut self) -> Result<Tokens, TokenizationError> {
-        let mut ctx = StringReader::new(self.src);
-        while !ctx.is_eof() {
-            let mut inner_ctx = ctx;
-            let result = grammar::scan(&mut inner_ctx, |sub_ctx, tt| {
-                let token = Token::new(tt, ctx.pos, sub_ctx.pos - ctx.pos);
-                self.tokens.push(token)
-            });
-
-            if result.is_none() {
-                // Not sure yet
-                self.report(ctx.line, "", "unexpected character.");
-            }
-            ctx = inner_ctx;
-        }
-        Ok(Tokens::default())
+impl grammar::Reporter for LexerReport {
+    fn append(&mut self, sub_ctx: &StringReader, tt: super::TokenType) {
+        let token = Token::new(tt, self.pos, sub_ctx.pos - self.pos);
+        self.tokens.push(token)
     }
 
     fn report(&mut self, line: u32, location: &str, msg: &str) {
         eprintln!("[line {line}] Error {location}:{msg}");
         self.has_error = true;
+    }
+}
+
+impl<'a> Lexer<'a> {
+    pub fn new(src: &'a str) -> Self {
+        Self { src }
+    }
+
+    pub fn tokenize(&mut self) -> Result<Tokens, TokenizationError> {
+        let mut ctx = StringReader::new(self.src);
+        let mut reporter = LexerReport::default();
+        while !ctx.is_eof() {
+            reporter.pos = ctx.pos;
+            let mut inner_ctx = ctx;
+            grammar::scan(&mut inner_ctx, &mut reporter);
+            ctx = inner_ctx;
+        }
+
+        println!("Completed tokenize: length is : {}", reporter.tokens.len());
+        for x in reporter.tokens.iter() {
+            println!("Token: {:?}", x);
+        }
+
+        Ok(Tokens {
+            tokens: reporter.tokens,
+        })
     }
 }
 
