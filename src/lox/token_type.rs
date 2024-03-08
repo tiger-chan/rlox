@@ -24,8 +24,14 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier{ offset: usize, len: usize },
-    String{ offset: usize, len: usize },
+    Identifier {
+        offset: usize,
+        len: usize,
+    },
+    String {
+        offset: usize,
+        len: usize,
+    },
     Number(f32),
 
     // Keywords.
@@ -48,4 +54,19 @@ pub enum TokenType {
 
     #[default]
     Eof,
+}
+
+impl TokenType {
+    pub fn as_string(&self, src: &str) -> String {
+        match self {
+            TokenType::Identifier { offset, len } => {
+                format!("Identifier {}", &src[*offset..(*offset + *len)])
+            }
+            TokenType::String { offset, len } => {
+                format!("String '{}'", &src[*offset..(*offset + *len)])
+            }
+            TokenType::Number(v) => format!("Number {}", v),
+            _ => format!("{:?}", self),
+        }
+    }
 }

@@ -38,6 +38,60 @@ fn is_alpha_numeric(c: char) -> bool {
     is_alpha(c) || is_digit(c)
 }
 
+fn string(ctx: &mut StringReader) -> Option<TokenType> {
+    ctx.read();
+    let start = ctx.pos;
+    while ctx.peek() != '"' && !ctx.is_eof() {
+        if ctx.peek() == '\n' {
+            ctx.ln();
+        }
+        ctx.read();
+    }
+
+    if ctx.is_eof() {
+        None
+    } else {
+        ctx.read();
+
+        Some(TT::String {
+            offset: start,
+            len: (ctx.pos - start) - 1,
+        })
+    }
+}
+
+fn numeric(ctx: &mut StringReader) -> Option<TokenType> {
+    let start = ctx.pos;
+    ctx.read();
+    while is_digit(ctx.peek()) {
+        ctx.read();
+    }
+
+    let mut tmp_ctx = *ctx;
+    if tmp_ctx.read() == '.' {
+        is_digit(tmp_ctx.peek()).then(|| {
+            while is_digit(tmp_ctx.peek()) {
+                tmp_ctx.read();
+            }
+            *ctx = tmp_ctx;
+        });
+    }
+
+    let number = &ctx.src[start..ctx.pos];
+
+    Some(TokenType::Number(number.parse::<f32>().unwrap()))
+}
+
+fn identifier(ctx: &mut StringReader<'_>) -> (usize, usize) {
+    let start = ctx.pos;
+    ctx.read();
+    while is_alpha_numeric(ctx.peek()) {
+        ctx.read();
+    }
+
+    (start, ctx.pos)
+}
+
 fn eof(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {
     if ctx.is_eof() || ctx.peek() == '\0' {
         consume(ctx, TT::Eof).map(|x| {
@@ -50,6 +104,7 @@ fn eof(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {
 
 fn unexpected(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {
     reporter.report(ctx.line, "", "Unexpected character.");
+    ctx.read();
     None
 }
 
@@ -123,28 +178,6 @@ fn slash_comments(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option
     }
 }
 
-fn string(ctx: &mut StringReader) -> Option<TokenType> {
-    ctx.read();
-    let start = ctx.pos + 1;
-    while ctx.peek() == '"' && !ctx.is_eof() {
-        if ctx.peek() == '\n' {
-            ctx.ln();
-        }
-        ctx.read();
-    }
-
-    if ctx.is_eof() {
-        None
-    } else {
-        ctx.read();
-
-        Some(TT::String {
-            offset: start,
-            len: (ctx.pos - start) - 1,
-        })
-    }
-}
-
 fn string_lit(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {
     match ctx.peek() {
         '"' => string(ctx).map(|x| reporter.append(ctx, x)),
@@ -152,43 +185,11 @@ fn string_lit(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()>
     }
 }
 
-fn numeric(ctx: &mut StringReader) -> Option<TokenType> {
-    let start = ctx.pos;
-    ctx.read();
-    while is_digit(ctx.peek()) {
-        ctx.read();
-    }
-
-    let mut tmp_ctx = *ctx;
-    if tmp_ctx.read() == '.' {
-        is_digit(tmp_ctx.peek()).then(|| {
-            while is_digit(tmp_ctx.peek()) {
-                tmp_ctx.read();
-            }
-            *ctx = tmp_ctx;
-        });
-    }
-
-    let number = &ctx.src[start..ctx.pos];
-
-    Some(TokenType::Number(number.parse::<f32>().unwrap()))
-}
-
 fn numeric_lit(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {
     match ctx.peek() {
         x if is_digit(x) => numeric(ctx).map(|x| reporter.append(ctx, x)),
         _ => None,
     }
-}
-
-fn identifier(ctx: &mut StringReader<'_>) -> (usize, usize) {
-    let start = ctx.pos;
-    ctx.read();
-    while is_alpha_numeric(ctx.peek()) {
-        ctx.read();
-    }
-
-    (start, ctx.pos)
 }
 
 fn identifiers_and_keywords(ctx: &mut StringReader, reporter: &mut dyn Reporter) -> Option<()> {

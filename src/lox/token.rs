@@ -15,4 +15,12 @@ impl Token {
             length,
         }
     }
+
+    pub fn as_string(&self, src: &str) -> String {
+        format!(
+            "{} {}",
+            self.token_type.as_string(src),
+            &src[self.start..(self.start + self.length)]
+        )
+    }
 }

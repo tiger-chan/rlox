@@ -53,9 +53,9 @@ impl<'a> Lexer<'a> {
             ctx = inner_ctx;
         }
 
-        println!("Completed tokenize: length is : {}", reporter.tokens.len());
+        println!("Completed tokenize - length is: {}", reporter.tokens.len());
         for x in reporter.tokens.iter() {
-            println!("Token: {:?}", x);
+            println!("Token: {:?}", x.as_string(self.src));
         }
 
         Ok(Tokens {
