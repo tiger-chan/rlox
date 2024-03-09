@@ -1,8 +1,10 @@
+mod expr;
 mod grammar;
 mod lexer;
 mod token;
 mod token_type;
 
+pub use expr::*;
 pub use lexer::Lexer;
 pub use token::Token;
 pub use token_type::TokenType;
