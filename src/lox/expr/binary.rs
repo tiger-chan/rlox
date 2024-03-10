@@ -1,6 +1,7 @@
-use super::{Expr, Expression};
+use super::{Expr, ExprId, Expression};
 
-#[derive(Debug, Clone, Copy)]
+#[allow(unused)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operator {
     Eq,
     Neq,
@@ -31,10 +32,27 @@ impl std::fmt::Display for Operator {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Binary {
-    pub left: Box<Expr>,
-    pub right: Box<Expr>,
+    pub left: ExprId,
+    pub right: ExprId,
     pub op: Operator,
+}
+
+impl Binary {
+    pub fn new(lhs: ExprId, op: Operator, rhs: ExprId) -> Self {
+        Self {
+            left: lhs,
+            op,
+            right: rhs,
+        }
+    }
+}
+
+impl From<Binary> for Expr {
+    fn from(value: Binary) -> Self {
+        Self::Binary(value)
+    }
 }
 
 impl Expression for Binary {}

@@ -1,5 +1,6 @@
-use super::Expression;
+use super::{Expr, Expression};
 
+#[allow(unused)]
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value {
     Nil,
@@ -19,8 +20,50 @@ impl std::fmt::Display for Value {
     }
 }
 
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Self::Str(value)
+    }
+}
+
+impl From<f32> for Value {
+    fn from(value: f32) -> Self {
+        Self::Num(value)
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
+}
+
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(t) => t.into(),
+            None => Value::Nil,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Literal {
     pub value: Value,
+}
+
+impl Literal {
+    pub fn new<T: Into<Value>>(value: T) -> Self {
+        Self {
+            value: value.into(),
+        }
+    }
+}
+
+impl From<Literal> for Expr {
+    fn from(value: Literal) -> Self {
+        Self::Literal(value)
+    }
 }
 
 impl std::fmt::Display for Literal {

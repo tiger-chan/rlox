@@ -1,5 +1,6 @@
-use super::{Expr, Expression};
+use super::{Expr, ExprId, Expression};
 
+#[allow(unused)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operator {
     Minus,
@@ -15,9 +16,22 @@ impl std::fmt::Display for Operator {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Unary {
     pub op: Operator,
-    pub right: Box<Expr>,
+    pub right: ExprId,
+}
+
+impl Unary {
+    pub fn new(op: Operator, rhs: ExprId) -> Self {
+        Self { op, right: rhs }
+    }
+}
+
+impl From<Unary> for Expr {
+    fn from(value: Unary) -> Self {
+        Self::Unary(value)
+    }
 }
 
 impl Expression for Unary {}

@@ -3,30 +3,35 @@ mod lox;
 mod string_reader;
 
 use ast_printer::AstPrinter;
-use lox::{Binary, Expr, Grouping, Literal, Unary, Value, Visitor};
+use lox::{Binary, ExprTree, Grouping, Literal, Unary, Visitor};
 use string_reader::StringReader;
 
 use std::{env, error::Error, path::Path};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    let expr = Expr::Binary(Binary {
-        left: Box::new(Expr::Unary(Unary {
-            op: lox::UnaryOp::Minus,
-            right: Box::new(Expr::Literal(Literal {
-                value: Value::Num(1.0),
-            })),
-        })),
-        op: lox::BinaryOp::Mul,
-        right: Box::new(Expr::Grouping(Grouping {
-            expression: Box::new(Expr::Literal(Literal {
-                value: Value::Num(45.67),
-            })),
-        })),
-    });
 
-    let printer = AstPrinter {};
-    println!("{}", printer.accept(&expr));
+    let mut tree = ExprTree::with_capacity(20);
+    let binary = {
+        let unary = {
+            let lit = tree.push(Literal::new(123.0));
+            tree.push(Unary::new(lox::UnaryOp::Minus, lit))
+        };
+
+        let grouping = {
+            let lit = tree.push(Literal::new(45.67));
+            tree.push(Grouping::new(lit))
+        };
+
+        tree.push(Binary::new(unary, lox::BinaryOp::Mul, grouping))
+    };
+
+    let ast_printer = AstPrinter {};
+    if let Some(v) = ast_printer.accept(&tree, binary) {
+        println!("Ast Printer: {}", v);
+    } else {
+        println!("Ast failed to find node");
+    }
 
     match args.len() {
         0 => {}
